@@ -10,7 +10,6 @@ import queue
 import timeit
 import io
 
-FILE_NAME = "recording.wav"
 SAMPLE_RATE = 16000
 stt = None
 
@@ -25,26 +24,25 @@ recognizer = speech_recognition.Recognizer()
 translator = googletrans.Translator()
 
 
-# fileLength, recognitionLanguage, translationLanguage, display, recordKey, openChatKey, closeChatKey
+# file_length, recognition_language, translation_language, display, record_key, open_chat_key, close_chat_key
 
 
-def Setup(fileLength, sleepLength, recognitionLanguage, translationLanguage, display, recordKey, openChatKey, closeChatKey):
+def Setup(file_length, sleep_length, recognition_language, translation_language, display, record_key, open_chat_key, close_chat_key):
     # Tries to get the Language code with the set Languages
     try:
-        recognitionLanguage = googletrans.LANGCODES[recognitionLanguage]
-        translationLanguage = googletrans.LANGCODES[translationLanguage]
+        recognition_language = googletrans.LANGCODES[recognition_language]
+        translation_language = googletrans.LANGCODES[translation_language]
     except:
         pass
 
-    if translationLanguage == "None":
-        translationLanguage = None
+    if translation_language == "None":
+        translation_language = None
 
     global stt
 
     # Creates a Thread for the Voice Recognition
     stt = kthread.KThread(
-        target=lambda: Run(fileLength,sleepLength / 1000, recognitionLanguage, translationLanguage, display, recordKey, openChatKey,
-                           closeChatKey))
+        target=lambda: Run(file_length, sleep_length / 1000, recognition_language, translation_language, display, record_key, open_chat_key, close_chat_key))
     stt.setDaemon(True)
     stt.start()
 
@@ -55,9 +53,9 @@ def Stop():
     stt.kill()
 
 
-def Run(fileLength, sleepLength, recognitionLanguage, translationLanguage, display, recordKey, openChatKey, closeChatKey):
-    display.addItem(f"Started: \nLanguage ={recognitionLanguage}\nTranslation = {translationLanguage}\n"
-                    f"File Length = {fileLength} sec")
+def Run(file_length, sleep_length, recognition_language, translation_language, display, record_key, open_chat_key, close_chat_key):
+    display.addItem(f"Started: \nLanguage ={recognition_language}\nTranslation = {translation_language}\n"
+                    f"File Length = {file_length} sec")
 
     # setting up tracking for key to avoid counting holding as multiple pressing
     global recording
@@ -73,60 +71,65 @@ def Run(fileLength, sleepLength, recognitionLanguage, translationLanguage, displ
         global key_pressed
         key_pressed = False
 
-    keyboard.on_press_key(recordKey, change_recording)
-    keyboard.on_release_key(recordKey, change_key_pressed)
+    keyboard.on_press_key(record_key, change_recording)
+    keyboard.on_release_key(record_key, change_key_pressed)
 
     while True:
-        display.addItem(f"Waiting for Key Input {recordKey}")
-        keyboard.wait(recordKey)
-        # timer to break if recording time is reached
-        start = timeit.default_timer()
-        file_stream = io.BytesIO()
-        display.addItem("Recording")
+        display.addItem(f"Waiting for Key Input {record_key}")
+        keyboard.wait(record_key)
+               
+        # Create BytesIO to get a file-like object so no temporary file is needed
+        audio_data = io.BytesIO()
 
+        display.addItem("Recording")
+        start = timeit.default_timer()
+
+        # Write InputStream to file-like object and stop after timing or key press
         def callback(indata, frames, time, status):
             data_queue.put(indata.copy())
 
-        with soundfile.SoundFile(file_stream, format="WAV", mode='w', samplerate=SAMPLE_RATE, channels=1) as file:
+        with soundfile.SoundFile(audio_data, format="WAV", mode='w', samplerate=SAMPLE_RATE, channels=1) as file:
             with sounddevice.InputStream(samplerate=SAMPLE_RATE, channels=1, callback=callback):
-                # write Stream to file while recording is not stopped by keypress or time
                 while recording:
-                    if timeit.default_timer() - start > fileLength:
-                        display.addItem("Max recording Time elapsed...")
+                    if timeit.default_timer() - start > file_length:
+                        display.addItem("Max recording time elapsed...")
                         recording = False
                     file.write(data_queue.get())
                 file.write(data_queue.get())
 
-        # Open the File
-        file_stream.seek(0)
-        with speech_recognition.AudioFile(file_stream) as source:
+        # Load the data to AudioFile...
+        audio_data.seek(0)
+        with speech_recognition.AudioFile(audio_data) as source:
             # Records the Audio in the recognizer
             audioData = recognizer.record(source)
 
-        # Tries to recognize with google in the set Language
+        # ... and tries to recognize with google in the set Language
         try:
-            text = recognizer.recognize_google(audioData, language=recognitionLanguage)
+            text = recognizer.recognize_google(audioData, language=recognition_language)
         except BaseException as error:
             display.addItem(f"Error while recognizing: {error}")
             text = ""
 
         # Translates when a Translation language is set
-        if translationLanguage is not None:
+        if translation_language is not None:
             # Tries to translate with google
             try:
-                message = translator.translate(text, dest=translationLanguage).text
+                message = translator.translate(text, dest=translation_language).text
             except BaseException as error:
                 display.addItem(f"Error while Translating: {error}")
                 message = ""
         else:
             message = text
 
+        # If a message successfully processed, send it to the game
         if message:
             display.addItem(f"Sending: {message}")
-            keyboard.press_and_release(openChatKey)
-            sleep(sleepLength)
+            keyboard.press_and_release(open_chat_key)
+            sleep(sleep_length)
             keyboard.write(message)
-            sleep(sleepLength)
-            keyboard.press_and_release(closeChatKey)
+            sleep(sleep_length)
+            keyboard.press_and_release(close_chat_key)
         else:
             display.addItem('Nothing to send')
+
+
