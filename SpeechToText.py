@@ -57,7 +57,7 @@ def Run(file_length, sleep_length, recognition_language, translation_language, d
     display.addItem(f"Started: \nLanguage ={recognition_language}\nTranslation = {translation_language}\n"
                     f"File Length = {file_length} sec")
 
-    # setting up tracking for key to avoid counting holding as multiple pressing
+    # setting up key tracking to avoid counting holding as multiple pressing
     global recording
 
     def change_recording(_):
@@ -97,7 +97,7 @@ def Run(file_length, sleep_length, recognition_language, translation_language, d
                     file.write(data_queue.get())
                 file.write(data_queue.get())
 
-        # Load the data to AudioFile...
+        # Loads the data to AudioFile...
         audio_data.seek(0)
         with speech_recognition.AudioFile(audio_data) as source:
             # Records the Audio in the recognizer
@@ -121,7 +121,7 @@ def Run(file_length, sleep_length, recognition_language, translation_language, d
         else:
             message = text
 
-        # If a message successfully processed, send it to the game
+        # If a message was detected (and successfully processed), send it to the game
         if message:
             display.addItem(f"Sending: {message}")
             keyboard.press_and_release(open_chat_key)
