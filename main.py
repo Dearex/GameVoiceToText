@@ -68,7 +68,7 @@ def Translation():
     if not ui.comBoxTranslation.isEnabled():
         ui.comBoxTranslation.setCurrentIndex(0)
     else:
-        ui.comBoxTranslation.setCurrentIndex(ui.comBoxTranslation.findText("english"))
+        ui.comBoxTranslation.setCurrentIndex(ui.comBoxTranslation.findText("English"))
 
 
 # Connects the UI Element Events to Functions
@@ -90,13 +90,14 @@ def connectUiElements():
 # Sets all the Combo Box Languages and standard values
 def SetComboBoxes():
     langcodes = googletrans.LANGCODES.keys()
+    langcodes = sorted([key.capitalize() for key in langcodes])
 
     ui.comBoxTranslation.addItem("None")
     ui.comBoxTranslation.addItems(langcodes)
     ui.comBoxTranslation.setCurrentIndex(0)
 
     ui.comBoxLanguage.addItems(langcodes)
-    ui.comBoxLanguage.setCurrentIndex(ui.comBoxLanguage.findText("english"))
+    ui.comBoxLanguage.setCurrentIndex(ui.comBoxLanguage.findText("English"))
 
 
 def Main():
